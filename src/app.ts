@@ -13,6 +13,24 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(cors);
 
+  // Global error handler
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, _request, reply) => {
+    const statusCode = error.statusCode || 500;
+    const response: Record<string, unknown> = {
+      error: error.message || 'Internal Server Error',
+    };
+
+    if (error.code) {
+      response.code = error.code;
+    }
+
+    if (statusCode >= 500) {
+      app.log.error(error);
+    }
+
+    return reply.status(statusCode).send(response);
+  });
+
   // Register routes
   await app.register(healthRoutes, { prefix: '/api' });
   await app.register(rateRoutes, { prefix: '/api/rates' });
